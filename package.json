@@ -1,0 +1,35 @@
+{
+  "name": "t-payments",
+  "version": "1.0.0",
+  "description": "Fintech backend service for handling payments.",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "src/app.js",
+    "dev": "nodemon src/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devharnold/T-payments.git"
+  },
+  "keywords": [
+    "payments",
+    "fintech",
+    "node.js"
+  ],
+  "author": "Henry Arnold",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/devharnold/T-payments/issues"
+  },
+  "homepage": "https://github.com/devharnold/T-payments#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
