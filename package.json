@@ -24,10 +24,14 @@
   },
   "homepage": "https://github.com/devharnold/T-payments#readme",
   "dependencies": {
+    "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "pg": "^8.13.1"
+    "kafkajs": "^2.2.4",
+    "luxon": "^3.5.0",
+    "pg": "^8.13.1",
+    "uuid": "^11.0.4"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"
