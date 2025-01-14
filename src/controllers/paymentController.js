@@ -1,4 +1,4 @@
-import { createPayment, updatePaymentStatus } from '../models/paymentsService.js';
+import { createPayment, updatePaymentStatus } from "../models/paymentsService/initiatePayments.js";
 
 // function to initiate a payment activity
 export const initiatePayment = async (req, res) => {

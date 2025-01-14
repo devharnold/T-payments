@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import { DateTime } from 'luxon';
 dotenv.config();
 
-class BaseModel {
+export default class BaseModel {
     constructor(args={}) {
         // class constructor 
         this.id = args.id || uuidv4();
@@ -81,4 +81,4 @@ class BaseModel {
     }
 };
 
-export default BaseModel;
+// export default BaseModel;
