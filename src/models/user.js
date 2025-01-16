@@ -71,6 +71,25 @@ export default class User {
         return hash === storedHash;
     }
 
+    // async updateUser(password) {
+    //     const validatePassword = (password) => {
+    //         const isValidLength = password.length >= 8;
+    //         const hasUpperCase = /[A-Z]/.test(password);
+    //         const hasLowerCase = /[a-z]/.test(password);
+    //         const hasNumber = /\d/.test(password);
+// 
+    //         return isValidLength && hasUpperCase && hasLowerCase && hasNumber;
+    //     }
+    //     if(password) {
+    //         if (!validatePassword) {
+    //             return res.status().json({ error: 'Make sure the detials are correct' });
+    //         }
+    //         const saltRounds = 10;
+    //         const hashPassword = await bcrypt.hash(password, saltRounds);
+    //         updateUser.password = hashPassword;
+    //     }
+    // }
+
     getUserDetails() {
         return {
             user_id: this.user_id,

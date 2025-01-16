@@ -8,12 +8,13 @@ const app = express();
 const router = express.Router();
 
 import { User } from '../models/user.js';
-import { registerUser, userLogin } from '../controllers/userController.js';
-import { authenticateUser } from '../middlewares/authUser.js';
+import { registerUser, userLogin, updateUser } from '../controllers/userController.js';
+// import { authenticateUser } from '../middlewares/authUser.js';
 
 app.use(express.json());
 app.use(registerUser);
 app.use(userLogin);
+app.use(updateUser);
 
 // get user by id
 router.get('/user/:user_id', async(req, res) => {
@@ -25,6 +26,7 @@ router.get('/user/:user_id', async(req, res) => {
             user: process.env.DB_USER,
             password: process.env.DB_PASSWORD
         })
+        await pool.connect();
         if (!pool) {
             return res.status(500).json({ error: 'Database Error' });
         }
@@ -67,6 +69,8 @@ router.get('/user/:user_id', async(req, res) => {
 //     }
 // })
 
+
+// register a new user
 router.post('/user', async(req, res) => {
     try {
         const pool = new Pool ({
@@ -76,13 +80,12 @@ router.post('/user', async(req, res) => {
             user: process.env.DB_USER,
             password: process.env.DB_PASSWORD
         })
+        await pool.connect();
         if (!pool) {
             return res.status().json({ error: 'Database Error' });
         }
-        const { first_name, last_name, user_email, phone_number, password } = req.body;
-        const hashPassword = await bcrypt.hash(password, 10);
 
-        const newUser = await User.registerUser({ first_name, last_name, user_email, phone_number, password: hashPassword });
+        const newUser = await User.registerUser(); // call the registerUser function
         return res.status(200).json({ message: 'Success' });
     } catch (error) {
         console.error('Error trying to process your service request');
@@ -90,8 +93,8 @@ router.post('/user', async(req, res) => {
     }
 });
 
-// update a user's password
-router.put('/user/:user_id', async(req, res) => {
+// LOGIN a user
+router.post('/user', async(req, res) => {
     try {
         const pool = new Pool({
             host: process.env.DB_HOST,
@@ -100,36 +103,44 @@ router.put('/user/:user_id', async(req, res) => {
             user: process.env.DB_USER,
             password: process.env.DB_PASSWORD
         })
+        await pool.connect();
         if (!pool) {
             return res.status().json({ error: 'Database Error' });
         }
-        // only field to be updated
-        const { password } = req.body;
-        
+
+        const user = await userLogin(); // call the userLogin function
+        return res.status(200).json({ message: 'Success' });
+    } catch(error) {
+        console.error('Error trying to Login');
+        res.status(500).json({ error: 'Error', error });
+    }
+});
+
+// update a user's password
+router.patch('/user/:user_id', async(req, res) => {
+    try {
+        const pool = new Pool({
+            host: process.env.DB_HOST,
+            port: process.env.DB_PORT,
+            database: process.env.DB_NAME,
+            user: process.env.DB_USER,
+            password: process.env.DB_PASSWORD
+        })
+        await pool.connect();
+        if (!pool) {
+            return res.status().json({ error: 'Database Error' });
+        }
+
         const user = await User.findByPk(user_id);
         if (!user) {
             return res.status().json({ error: 'User not found' });
         }
-        
-        const validatePassword = (password) => {
-            const isValidLength = password.length >= 8;
-            const hasUpperCase = /[A-Z]/.test(password);
-            const hasLowerCase = /[a-z]/.test(password);
-            const hasNumber = /\d/.test(password);
-
-            return isValidLength && hasUpperCase && hasLowerCase && hasNumber;
-        }
-        if (password) {
-            if (!validatePassword(password)) {
-                return res.status(400).json({ message: 'Make sure your password meets requirements'}); // this will be in instances of a bad request
-            }
-            const saltRounds = 10;
-            const hashPassword = await bcrypt.hash(password, saltRounds);
-            user.password = hashPassword;
-        }
-        await user.save();
-        res.json({ message: 'Successfully updated user password', user });
-    } catch(error) {
-        res.status(500).json({ message: 'Error', error });
+        await user.updateUser();
+        return res.status(201).json({ message: 'Successfully updated user' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error', error });
     }
-});
+})
+
+// router.delete('/user', async(req, res) => {
+// })
