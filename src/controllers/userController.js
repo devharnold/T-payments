@@ -3,7 +3,6 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { Pool } from "pg";
-import { Client } from "pg";
 const secretKey = process.env.JWT_SECRET;
 
 export async function registerUser(req, res) {
@@ -15,6 +14,8 @@ export async function registerUser(req, res) {
             user: process.env.DB_USER,
             password: process.env.DB_PASSWORD
         })
+        await pool.connect();
+        
         if (!pool) {
             return(500).json({ error: "Failed! Database Error" });
         }
@@ -22,6 +23,7 @@ export async function registerUser(req, res) {
         const hashPassword = await bcrypt.hash(password, 10);
 
         const newUser = await User.create({ first_name, last_name, user_email, phone_number, password: hashPassword });
+        pool.query(newUser);
         return res.status(201).json(newUser);
     } catch (err) {
         return res.status(500).json({ error: 'Error creating your account', err })
@@ -37,6 +39,8 @@ export async function userLogin(req, res) {
             user: process.env.DB_USER,
             password: process.env.DB_PASSWORD
         })
+        await pool.connect();
+
         if (!pool) {
             return(500).json({ message: "Failed. Database Error"});
         }
@@ -67,6 +71,8 @@ export async function userLogin(req, res) {
 //             user: process.env.DB_USER,
 //             password: process.env.DB_PASSWORD
 //         })
+//         await pool.connect();
+//
 //         if(!pool) {
 //             return(500).json({ error: 'Database Error' });
 //         }
