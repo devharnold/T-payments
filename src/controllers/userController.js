@@ -1,5 +1,6 @@
 import User from "../models/user.js";
-import bcrypt from 'bcryptjs';
+import crypto from 'crypto-js';
+import bcrypt from 'bcrypt.js';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { Pool } from "pg";
@@ -7,108 +8,148 @@ const secretKey = process.env.JWT_SECRET;
 
 import { authService } from '../middlewares/authService.js';
 
-export async function registerUser(req, res) {
-    try {
-        /**
-         * pool over client because the pool will create a new client every time
-         * need arises. So pool is the most efficient way to handle this
-         */
-        const pool = new Pool({
+export default class userController {
+    constructor() {
+        this.pool = new Pool({
             host: process.env.DB_HOST,
             port: process.env.DB_PORT,
             database: process.env.DB_NAME,
             user: process.env.DB_USER,
             password: process.env.DB_PASSWORD
-        })
-        await pool.connect();
-        
-        if (!pool) {
-            return(500).json({ error: 'Failed! Database Error' });
-        }
-        const { first_name, last_name, user_email, phone_number, password } = req.body;
-        const hashPassword = await bcrypt.hash(password, 10);
-
-        const newUser = await User.create({ first_name, last_name, user_email, phone_number, password: hashPassword });
-        pool.query(newUser);
-        return res.status(201).json(newUser);
-    } catch (err) {
-        return res.status(500).json({ error: 'Error creating your account', err })
+        });
     }
-}
 
-export async function userLogin(req, res) {
-    try {
-        const pool = new Pool({
-            host: process.env.DB_HOST,
-            port: process.env.DB_PORT,
-            database: process.env.DB_NAME,
-            user: process.env.DB_USER,
-            password: process.env.DB_PASSWORD
-        })
-        await pool.connect();
+    async registerUser(req, res) {
+        const { first_name, last_name, phone_number, user_email, password } = req.body;
 
-        if (!pool) {
-            return(500).json({ message: 'Failed. Database Error' });
+        if (!first_name || !last_name || !phone_number || !user_email || !password) {
+            return res.status(400).json({ error: 'missing requirements' });
         }
+        try {
+            const newUser = await User.createUser(this.pool, { first_name, last_name, phone_number, user_email, password });
+            res.status(201).json({ message: 'User created successfully', user: newUser });
+        } catch (error) {
+            console.error('Error in register: ', error);
+            res.status(500).json({ message: 'Server Error' });
+        }
+    }
 
+    async userLogin(req, res) {
         const { user_email, password } = req.body;
-        const user = await User.findOne({ where: { user_email } });
-        if (user) {
-            const authenticate = authService();
-        }
-        if (!user) {
-            return(404).json({ error: "No user found!" });
-        }
-        
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res(401).json({ message: 'Invalid Credentials' });
-        }
-        const token = generateToken(user);
-        res.json({ token });
-    } catch(err) {
-        return res(500).json({ error: 'Server error', err });
-    }
-}
 
-export async function updateUser(req, res) {
-    try {
-        const pool = new Pool({
-            host: process.env.DB_HOST,
-            port: process.env.DB_PORT,
-            database: process.env.DB_NAME,
-            user: process.env.DB_USER,
-            password: process.env.DB_PASSWORD
-        })
-        if (!pool) {
-            return res(500).json({ error: 'Connection Failed' });
+        if (!user_email || !password ) {
+            return res.status(400).json({error: 'Missing fields' });
         }
-        const { user_id, password } = req.body;
-        const user = await User.findByPk({ where: { user_id } });
-        if(!user) {
-            return res(404).json({ error: 'User not found' });
-        }
-        const validatePassword = (password) => {
-            const isValidLength = password.length >= 8;
-            const hasUpperCase = /[A-Z]/.test(password);
-            const hasLowerCase = /[a-z]/.test(password);
-            const hasNumber = /\d/.test(password);
-
-            return isValidLength && hasUpperCase && hasLowerCase && hasNumber;
-        }
-        if (password) {
-            if (!validatePassword(password)) {
-                return res.status(400).json({ message: 'Make sure password meets requirements' });
+        try {
+            const client = await this.pool.connect();
+            if(!client) {
+                return res.status(500).json({ message: 'Failed. Database Error' });
             }
-            const saltRounds = 10;
-            const hashPassword = await bcrypt.hash(password, saltRounds);
-            user.password = hashPassword;
+            // const user = await User.findOne({ where: { user_email } });
+            const user = 'SELECT user_email FROM users WHERE user_id = $1';
+            const result = await this.pool.query(query, [user_id]);
+
+            client.release();
+
+            if(!user) {
+                return res.status(404).json({ error: 'User not found' });
+            }
+            
+            const isMatch = await bcrypt.compare(password, user.password);
+            if(!isMatch) {
+                return res.status(401).json({ error: 'Invalid Credentials' });
+            }
+
+            const token = generateToken(user);
+            res.json({ token });
+
+            client.release();
+        } catch (error) {
+            console.error('Error tryint to login:', error);
+            return res.status(500).json({ error: 'Server Error', error });
         }
-    } catch (error) {
-        return res.status(500).json({ error: 'Error', error });
+    }
+
+    async searchUser(req, res) {
+        const { first_name, last_name, user_id } = req.body;
+
+        try {
+            const client = await this.pool.connect();
+            const user = 'SELECT first_name, last_name FROM users where user_id = $1';
+            if (!user) {
+                return res.status(404).json({ error: 'User not found' });
+            }
+            client.release();
+        } catch (error) {
+            console.error('Error trying to complete your request');
+            throw new Error;
+        }
+    }
+
+    async updateUser(req, res) {
+        const { user_id, password } = req.body;
+        try {
+            const client = await pool.connect();
+            const user = 'SELECT user_email FROM users WHERE user_id = $1';
+            const result = await this.pool.query(query, [user_id]);
+            // const user = await User.findByPk({ where: { user_id } });
+            if(!user) {
+                return res(404).json({ error: 'User not found' });
+            }
+            const validatePassword = (password) => {
+                const isValidLength = password.length >= 8;
+                const hasUpperCase = /[A-Z]/.test(password);
+                const hasLowerCase = /[a-z]/.test(password);
+                const hasNumber = /\d/.test(password);
+    
+                return isValidLength && hasUpperCase && hasLowerCase && hasNumber;
+            }
+            if (password) {
+                if (!validatePassword(password)) {
+                    return res.status(400).json({ message: 'Make sure password meets requirements' });
+                }
+                const saltRounds = 10;
+                const hashPassword = await bcrypt.hash(password, saltRounds);
+                user.password = hashPassword;
+            }
+            client.release();
+        } catch (error) {
+            return res.status(500).json({ error: 'Error', error });
+        }
+    };
+    
+    async generateToken(user) {
+        const payload = {
+            id: user.user_id,
+            email: user.user_email,
+            role: user.user
+        };
+        return jwt.sign(payload, secretKey, { expiresIn: '30mins' })
     }
 };
 
+//     static async verifyPassword(pool, { user_email, password }) {
+//         try {
+//             const client = await pool.connect();
+//             const query = `SELECT password FROM users WHERE user_email = $1`;
+//             const result = await client.query(query, [user_email]);
+//             client.release();
+// 
+//             if (result.rows.length === 0) {
+//                 throw new Error('user not found');
+//             }
+//             const { password: storedHash } = result.rows[0];
+//             const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
+// 
+//             return hashedPassword === storedHash;
+//         } catch(error) {
+//             console.error('Error trying to verify password');
+//             throw new Error;
+//         }
+//     }
+// }
+
+// 
 // export async function deleteUser(req, res) {
 //     try {
 //         const pool = new Pool({

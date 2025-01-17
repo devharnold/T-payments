@@ -18,6 +18,8 @@ export const initiatePayment = async (req, res) => {
     }
 };
 
+
+
 // confirm if payment is successful
 export const confirmPayment = async (req, res) => {
     const { user_id, payment_id, account_id} = req.body;
