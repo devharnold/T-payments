@@ -117,7 +117,7 @@ export default class userController {
             return res.status(500).json({ error: 'Error', error });
         }
     };
-    
+
     async generateToken(user) {
         const payload = {
             id: user.user_id,
@@ -128,64 +128,3 @@ export default class userController {
     }
 };
 
-//     static async verifyPassword(pool, { user_email, password }) {
-//         try {
-//             const client = await pool.connect();
-//             const query = `SELECT password FROM users WHERE user_email = $1`;
-//             const result = await client.query(query, [user_email]);
-//             client.release();
-// 
-//             if (result.rows.length === 0) {
-//                 throw new Error('user not found');
-//             }
-//             const { password: storedHash } = result.rows[0];
-//             const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
-// 
-//             return hashedPassword === storedHash;
-//         } catch(error) {
-//             console.error('Error trying to verify password');
-//             throw new Error;
-//         }
-//     }
-// }
-
-// 
-// export async function deleteUser(req, res) {
-//     try {
-//         const pool = new Pool({
-//             host: process.env.DB_HOST,
-//             port: process.env.DB_PORT,
-//             database: process.env.DB_NAME,
-//             user: process.env.DB_USER,
-//             password: process.env.DB_PASSWORD
-//         })
-//         await pool.connect();
-//
-//         if(!pool) {
-//             return(500).json({ error: 'Database Error' });
-//         }
-//         const { user_email, password } = req.body;
-//         const user = await User.findOne({ where: { user_email } });
-//         if (!user) {
-//             return res.status(400).json({ error: 'User not found' });
-//         }
-//         const isMatch = await bcrypt.compare(password, user.password);
-//         if (!isMatch) {
-//             return res.status(401).json({ error: 'Invalid credentials' });
-//         }
-//         await user.destroy();
-//         return res.status(200).json({ message: 'User deleted successfully' })
-//     } catch(err) {
-//         console.error('Error deleting user: ', err.message);
-//         res.status(500).json({ error: 'Error occured while deleting user. Please try again later' });
-//     }
-// }
-
-// export default function generateToken(user) {
-//     const payload = {
-//         id: user.user_id,
-//         email: user.user_email,
-//         role: user.user
-//     };
-//     return jwt.sign(payload, secretKey, { expiresIn: '2hrs' });
-// }
