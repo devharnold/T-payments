@@ -26,13 +26,15 @@ export default class userController {
             return res.status(400).json({ error: 'missing requirements' });
         }
         try {
+            const client = await this.pool.connect();
             const newUser = await User.createUser(this.pool, { first_name, last_name, phone_number, user_email, password });
             res.status(201).json({ message: 'User created successfully', user: newUser });
+            client.release();
         } catch (error) {
             console.error('Error in register: ', error);
             res.status(500).json({ message: 'Server Error' });
         }
-    }
+    };
 
     async userLogin(req, res) {
         const { user_email, password } = req.body;
@@ -45,9 +47,9 @@ export default class userController {
             if(!client) {
                 return res.status(500).json({ message: 'Failed. Database Error' });
             }
-            // const user = await User.findOne({ where: { user_email } });
-            const user = 'SELECT user_email FROM users WHERE user_id = $1';
-            const result = await this.pool.query(query, [user_id]);
+            const query = 'SELECT user_email FROM users WHERE user_email = $1';
+            const result = await this.pool.query(query, [user_email]);
+            const user = result.rows[0]
 
             client.release();
 
@@ -63,36 +65,38 @@ export default class userController {
             const token = generateToken(user);
             res.json({ token });
 
-            client.release();
         } catch (error) {
-            console.error('Error tryint to login:', error);
-            return res.status(500).json({ error: 'Server Error', error });
+            console.error('Error trying to login:',);
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
-    }
+    };
 
     async searchUser(req, res) {
-        const { first_name, last_name, user_id } = req.body;
+        const { user_id } = req.body;
 
         try {
             const client = await this.pool.connect();
-            const user = 'SELECT first_name, last_name FROM users where user_id = $1';
+            const query = 'SELECT first_name, last_name FROM users where user_id = $1';
+            const result = await this.pool.query(query, user_id);
+            const user = result.rows[0];
             if (!user) {
                 return res.status(404).json({ error: 'User not found' });
             }
             client.release();
         } catch (error) {
             console.error('Error trying to complete your request');
-            throw new Error;
+            return res.status().json({ error: 'Internal Server Error' })
         }
-    }
+    };
 
     async updateUser(req, res) {
         const { user_id, password } = req.body;
         try {
             const client = await pool.connect();
-            const user = 'SELECT user_email FROM users WHERE user_id = $1';
+            const query = 'SELECT user_email FROM users WHERE user_id = $1';
             const result = await this.pool.query(query, [user_id]);
-            // const user = await User.findByPk({ where: { user_id } });
+            const user = result.rows[0];
+            client.release();
             if(!user) {
                 return res(404).json({ error: 'User not found' });
             }
@@ -112,9 +116,9 @@ export default class userController {
                 const hashPassword = await bcrypt.hash(password, saltRounds);
                 user.password = hashPassword;
             }
-            client.release();
         } catch (error) {
-            return res.status(500).json({ error: 'Error', error });
+            console.error('Error trying to complete your request')
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
     };
 

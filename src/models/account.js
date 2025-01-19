@@ -12,57 +12,96 @@ const pool = new Pool({
     password: process.env.DB_PASSWORD
 })
 
-/**
- * @param: account_id -> unique identifier of the account.
- * @param: account_number -> unique account number.
- * @param: pin -> secure password for the account
- * @param: user_id -> references users(id).
- * @param: account_type -> type of account opened.
- * @param: currency -> the currencies the account will accept.
- * @param: status -> status of the account { active, inactive }
- * @returns: the operational account
- */
-
 export default class Accounts {
-    constructor(account_id, account_number, pin, user_id, category, currency, status) {
-        this.account_id = account_id;
-        this.account_number = account_number;
-        this.category = this.validateCategory(category);
-        this.pin = pin;
+    constructor(account_id, password, user_id, category, currency, status) {
+        this.account_id = account_id
+        this.password =  password;
         this.user_id = user_id;
+        this.category = category;
         this.currency = currency;
         this.status = status;
     }
+    
+    /**
+     * 
+     * @param {string} pool account_ID
+     * @returns {string} account_ID
+     */
+    static generateAccountId(account_number) {
+        const prefix = 'accNum';
+        // removes all the hyphens from the genrated account_number by uuid then picks up the first 13 characters
+        const account_number = uuidv4().replace(/-/g, '').slice(0, 13);
+        return `${prefix}-${account_number}`;
+    }
 
-    validateCategory(category) {
+    static validateCategory(category) {
         const validateCategories = ['Business', 'Single-user', 'Multi-user'];
         if (!validateCategories.includes(category)) {
-            throw new Error(`Invalid category. Valid categories are : ${validateCategories.join(', ')}`);
+            console.error(`Invalid category. Valid categories are: ${validateCategories.join(', ')}`);
         }
         return category;
     }
 
-    hashPin(Pin) {
-        if (!pin || typeof pin !== 'number' || pin.length < 4) {
-            throw new Error('Invalid PIN. It must be of 4 numbers');
-        }
-        const salt = crypto.randomBytes(16).toString('hex');
-        const hash = crypto.sha256(pin, salt, 100, 64, 'sha256').toString('hex');
-    }
-    
-    verifyPin(pin) {
-        const [salt, storedHash] = this.hashPin.split('.');
-        const hash = crypto.sha256(pin, salt, 100, 64, 'sha256').toString('hex');
-        return hash === storedHash;
-    }
+    static async createAccount(pool, { pin, currency}) {
+        try {
+            const saltRounds = 10;
+            const hashedPin = await bcrypt.hash(pin, saltRounds);
+            const account_number = this.generateAccountId();
+            const category = this.validateCategory();
 
-    getAccountDetails() {
-        return {
-            account_id: this.account_id,
-            account_number: this.account_number,
-            user: this.user,
-            category: this.category
-        };
+            const available_currencies = ['KES', 'USD', 'GBP'];
+            if(!available_currencies.includes(currency)) {
+                console.error(`Unavailable currency. Available currencies are: ${available_currencies.join(', ')}`);
+            }
+
+            const client = await this.pool.connect();
+            if (!client) {
+                return res.status(500).json({ error: 'Error connecting' });
+            }
+            const query = `
+                INSERT INTO accounts(account_id, )`
+        }
     }
 }
-
+// export default class Accounts {
+//     constructor(account_id, account_number, pin, user_id, category, currency, status) {
+//         this.account_id = account_id;
+//         this.account_number = account_number;
+//         this.category = this.validateCategory(category);
+//         this.pin = pin;
+//         this.user_id = user_id;
+//         this.currency = currency;
+//         this.status = status;
+//     }
+// 
+//     validateCategory(category) {
+//         const validateCategories = ['Business', 'Single-user', 'Multi-user'];
+//         if (!validateCategories.includes(category)) {
+//             throw new Error(`Invalid category. Valid categories are : ${validateCategories.join(', ')}`);
+//         }
+//         return category;
+//     }
+// 
+//     hashPin(Pin) {
+//         if (!pin || typeof pin !== 'number' || pin.length < 4) {
+//             throw new Error('Invalid PIN. It must be of 4 numbers');
+//         }
+//         const salt = crypto.randomBytes(16).toString('hex');
+//         const hash = crypto.sha256(pin, salt, 100, 64, 'sha256').toString('hex');
+//     }
+//     
+//     verifyPin(pin) {
+//         const [salt, storedHash] = this.hashPin.split('.');
+//         const hash = crypto.sha256(pin, salt, 100, 64, 'sha256').toString('hex');
+//         return hash === storedHash;
+//     }
+// 
+//     getAccountDetails() {
+//         return {
+//             account_id: this.account_id,
+//             account_number: this.account_number,
+//             user: this.user,
+//             category: this.category
+//         };
+//     }
+// };
