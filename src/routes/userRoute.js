@@ -2,13 +2,12 @@
 
 import dotenv from 'dotenv';
 import express from 'express';
-import { Pool } from 'pg';
 dotenv.config();
 const app = express();
 const router = express.Router();
 
-import { User } from '../models/user.js';
 import userController, { registerUser, userLogin, updateUser, searchUser } from '../controllers/userController.js';
+// import { User } from '../models/user.js';
 // import { authenticateUser } from '../middlewares/authUser.js';
 
 app.use(express.json());

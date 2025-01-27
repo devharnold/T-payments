@@ -1,5 +1,7 @@
 import { Pool } from "pg";
 import dotenv from 'dotenv';
+import User from "../user.js";
+import Accounts from "../account.js";
 dotenv.config();
 
 const pool = new Pool({
@@ -12,46 +14,112 @@ const pool = new Pool({
 
 
 export default class paymentsService {
-    constructor(sender_account_id, receiver_account_id, user_id, amount, from_currency, to_currency, payment_method) {
-        
+    constructor(user_id, business_account_id, balance, amount, from_currency, to_currency, transaction_id) {
+        this.user_id = user_id;
+        this.receiver_account_id = business_account_id;
+        this.balance = balance;
+        this.amount = amount;
+        this.from_currency = from_currency;
+        this.to_currency = to_currency;
+        this.transaction_id = transaction_id
     }
-}
+    
+    static async initiatePayment(payments) {
+        const validPaymentMethods = ['mobile money', 'debit card'];
+        const available_currencies = ['GBP', 'USD', 'KES'];
+        
+        const client = await pool.connect();
 
-// export const createPayment = async(user_id, amount) => {
-//     // vaild payment methods
-//     // const validPaymenthMethods = ['credit card', 'mobile money', 'debit card'];
-// 
-//     // check if the selected payment method is available
-//     if (!validPaymenthMethods.includes(paymentMethod.toLowerCase())) {
-//         throw new Error('Invalid Payment method');
-//     }
-//     
-//     try {
-//         const client = await pool.connect();
-// 
-//         // generate a random payment id for every payment made
-//         const queryForTransactionId = 'SELECT NEXTVAL(\'transaction_id_seq\') AS payment_id';
-//         const transactionIdResult = await client.query(queryForTransactionId);
-//         const transaction_id = transacionIdResult.rows[0].transactionId;
-// 
-//         // SQL query to insert record into the database
-//         const query = `
-//             INSERT INTO payments(user_id, account_id, amount, status)
-//             VALUES ($1, $2, $3, $4)
-//             RETURNING *;
-//         `;
-//         const values = [user_id, amount, transaction_id];
-// 
-//         // Execute the query
-//         const result = await client.query(query, values);
-//         return result.rows[0]; // Returns the payment record
-// 
-//         client.release();
-//     } catch (error) {
-//         console.error('Error creating payment:', error);
-//         throw new Error('Could not create payment');
-//     }
-// };
+        try {
+            await client.query('BEGIN');
+
+            const result = [];
+            for(const payment of payments) {
+                const {
+                    user_id,
+                    business_account_id,
+                    from_currency,
+                    to_currency,
+                    amount,
+                    transaction_id,
+                } = payment;
+
+                if (amount <= 0) {
+                    // check if amount is less than or equal to 0
+                    result.push({
+                        transaction_id,
+                        status: "Incomplete! Cannot transafer 0 funds"
+                    });
+                    continue;
+                }
+                // if the currency is not available then return error message
+                if(!available_currencies.includes(from_currency) || !available_currencies.includes(to_currency)) {
+                    result.push({
+                        transaction_id,
+                        status: "Currency not available"
+                    });
+                } 
+
+                // check user's balance before making payment 
+                const [senderRows] = await client.query(
+                    "SELECT balance FROM account WHERE user_id = $1",
+                    [sender_account_id]
+                );
+                if (senderRows.length === 0) {
+                    result.push({
+                        transaction_id,
+                        status: "Sender account not found"
+                    });
+                    continue;
+                }
+
+                const senderBalance = senderRows[0].balance;
+                if (senderBalance < amount) {
+                    result.push({
+                        transaction_id,
+                        status: "Insufficient funds in your wallet"
+                    });
+                    continue;
+                }
+
+                // check receiver account
+                const [receiverRows] = await client.query(
+                    "SELECT account_id FROM accounts WHERE account_id = $1",
+                    [receiver_account_id]
+                );
+                if (receiverRows.length === 0) {
+                    result.push({
+                        transaction_id,
+                        status: "Receipient not found"
+                    });
+                    continue;
+                }
+                // insert the transaction if checks pass
+                await client.query(
+                    `
+                    INSERT INTO transactions(user_id, business_account_id, from_currency, to_currency, amount, transaction_id)
+                    VALUES ($!, $2, $3, $4, $5, $6)
+                    `,
+                    [user_id, business_account_id, from_currency, to_currency, amount, transaction_id]
+                );
+                result.push({
+                    transaction_id,
+                    status: "Payment complete!"
+                });
+            }
+            await client.query('COMMIT');
+            return result;
+        } catch(error) {
+            await client.query('ROLLBACK');
+            return {
+                error: "Transaction failed",
+                message: error.message
+            };
+        } finally {
+            await client.end();
+        }
+    }
+};
 
 // export const getPaymentById = async(payment_id) => {
 //     try {

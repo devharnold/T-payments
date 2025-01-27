@@ -1,4 +1,4 @@
-import { createPayment, updatePaymentStatus } from "../models/paymentsService/initiatePayments.js";
+import paymentsService, { initiatePayment, createPayment, updatePaymentStatus } from "../models/paymentsService/initiatePayments.js";
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -15,10 +15,107 @@ export default class paymentController {
             password: process.env.DB_PASSWORD
         });
     }
-    async initiatePayment(req, res) {
-        const { }
+
+    // payments controller to enable a user make payment
+    async makePayment(req, res) {
+        const {user_id, business_account_id, amount, from_currency, to_currency} = req.body;
+
+        if (!business_account_id || !amount || !from_currency || !to_currency) {
+            return res.status(400).json({"Error": "Missing fields"})
+        }
+        try {
+            const client = await this.pool.connect();
+            const newPayment = paymentsService.initiatePayment(this.pool, { user_id, business_account_id, amount, from_currency, to_currency });
+            res.status(201).json({ message: "Payment done!", payment: newPayment });
+            client.release();
+        } catch(error) {
+            console.error('Error creating payment', error);
+            res.status(500).json({ message: "Server error" });
+        }
     }
-}
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // static async updatePaymentStatus(payment_id, status) {
+    //     try {
+    //         const client = await pool.connect();
+    //         const query = `
+    //             UPDATE payments
+    //             SET status = $1, updated_at = NOW()
+    //             WHERE payment_id = $2
+    //             RETURNING *;
+    //         `;
+    //         const values = [status, payment_id];
+
+    //         const result = await client.query(query, values);
+    //         return result.rows[0];
+
+    //         client.release();
+    //     } catch (error) {
+    //         console.error('Error updating payment status: ', error);
+    //         throw new Error('Could not update payment status');
+    //     }
+    // }
+
 
 
 
