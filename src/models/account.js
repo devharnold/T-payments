@@ -21,18 +21,12 @@ export default class Accounts {
         this.currency = currency;
         this.status = status;
     }
-    
-    /**
-     * 
-     * @param {string} pool account_ID
-     * @returns {string} account_ID
-     */
-    static generateAccountId(account_number) {
+    static generateAccountId() {
         const prefix = 'accNum';
         // removes all the hyphens from the genrated account_number by uuid then picks up the first 13 characters
-        const account_number = uuidv4().replace(/-/g, '').slice(0, 13);
-        return `${prefix}-${account_number}`;
-    }
+        const account_id = uuidv4().replace(/-/g, '').slice(0, 13);
+        return `${prefix}-${account_id}`;
+    };
 
     static validateCategory(category) {
         const validateCategories = ['Business', 'Single-user', 'Multi-user'];
@@ -40,7 +34,7 @@ export default class Accounts {
             console.error(`Invalid category. Valid categories are: ${validateCategories.join(', ')}`);
         }
         return category;
-    }
+    };
 
     static async createAccount(pool, { pin, currency}) {
         try {
@@ -59,10 +53,30 @@ export default class Accounts {
                 return res.status(500).json({ error: 'Error connecting' });
             }
             const query = `
-                INSERT INTO accounts(account_id, )`
+                INSERT INTO accounts(account_id, password, user_id, category, currency)
+                VALUES($1, $2, $3, $4, $5)
+                RETUNING *;
+            `;
+            const values = [account_id, user_id, password, category, currency];
+            const result = await client.query(query, values);
+            client.release();
+
+            return result.rows[0];
+        } catch(error) {
+            console.error('Error within the database: ', error.message);
+            throw new Error('Failed to createa new account');
         }
-    }
-}
+    };
+
+    static getAccountDetails() {
+        return {
+            account_id: this.account_id,
+            user_id: this.user_id,
+            category: this.category,
+            currency: this.currency
+        }
+    };
+};
 // export default class Accounts {
 //     constructor(account_id, account_number, pin, user_id, category, currency, status) {
 //         this.account_id = account_id;

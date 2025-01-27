@@ -10,41 +10,48 @@ const pool = new Pool({
     password: process.env.DB_PASSWORD
 })
 
-export const createPayment = async(user_id, amount) => {
-    // vaild payment methods
-    // const validPaymenthMethods = ['credit card', 'mobile money', 'debit card'];
 
-    // check if the selected payment method is available
-    if (!validPaymenthMethods.includes(paymentMethod.toLowerCase())) {
-        throw new Error('Invalid Payment method');
+export default class paymentsService {
+    constructor(sender_account_id, receiver_account_id, user_id, amount, from_currency, to_currency, payment_method) {
+        
     }
-    
-    try {
-        const client = await pool.connect();
+}
 
-        // generate a random payment id for every payment made
-        const queryForPaymentId = 'SELECT NEXTVAL(\'payment_id_seq\') AS payment_id';
-        const paymentIdResult = await client.query(queryForPaymentId);
-        const payment_id = paymentIdResult.rows[0].paymentId;
-
-        // SQL query to insert record into the database
-        const query = `
-            INSERT INTO payments(user_id, account_id, amount, status)
-            VALUES ($1, $2, $3, $4)
-            RETURNING *;
-        `;
-        const values = [user_id, amount, payment_id];
-
-        // Execute the query
-        const result = await client.query(query, values);
-        return result.rows[0]; // Returns the payment record
-
-        client.release();
-    } catch (error) {
-        console.error('Error creating payment:', error);
-        throw new Error('Could not create payment');
-    }
-};
+// export const createPayment = async(user_id, amount) => {
+//     // vaild payment methods
+//     // const validPaymenthMethods = ['credit card', 'mobile money', 'debit card'];
+// 
+//     // check if the selected payment method is available
+//     if (!validPaymenthMethods.includes(paymentMethod.toLowerCase())) {
+//         throw new Error('Invalid Payment method');
+//     }
+//     
+//     try {
+//         const client = await pool.connect();
+// 
+//         // generate a random payment id for every payment made
+//         const queryForTransactionId = 'SELECT NEXTVAL(\'transaction_id_seq\') AS payment_id';
+//         const transactionIdResult = await client.query(queryForTransactionId);
+//         const transaction_id = transacionIdResult.rows[0].transactionId;
+// 
+//         // SQL query to insert record into the database
+//         const query = `
+//             INSERT INTO payments(user_id, account_id, amount, status)
+//             VALUES ($1, $2, $3, $4)
+//             RETURNING *;
+//         `;
+//         const values = [user_id, amount, transaction_id];
+// 
+//         // Execute the query
+//         const result = await client.query(query, values);
+//         return result.rows[0]; // Returns the payment record
+// 
+//         client.release();
+//     } catch (error) {
+//         console.error('Error creating payment:', error);
+//         throw new Error('Could not create payment');
+//     }
+// };
 
 // export const getPaymentById = async(payment_id) => {
 //     try {
@@ -65,26 +72,26 @@ export const createPayment = async(user_id, amount) => {
 // };
 
 // function to update the payment status after payment is received
-export const updatePaymentStatus = async(payment_id, status) => {
-    try {
-        const client = await pool.connect();
-        const query = `
-            UPDATE payments
-            SET status = $1, updated_at = NOW()
-            WHERE payment_id = $2
-            RETURNING *;
-        `;
-        const values = [status, payment_id];
-
-        const result = await client.query(query, values);
-        return result.rows[0];
-
-        client.release();
-    } catch (error) {
-        console.error('Error updating payment status: ', error);
-        throw new Error('Could not update payment status');
-    }
-};
+// export const updatePaymentStatus = async(payment_id, status) => {
+//     try {
+//         const client = await pool.connect();
+//         const query = `
+//             UPDATE payments
+//             SET status = $1, updated_at = NOW()
+//             WHERE payment_id = $2
+//             RETURNING *;
+//         `;
+//         const values = [status, payment_id];
+// 
+//         const result = await client.query(query, values);
+//         return result.rows[0];
+// 
+//         client.release();
+//     } catch (error) {
+//         console.error('Error updating payment status: ', error);
+//         throw new Error('Could not update payment status');
+//     }
+// };
 
 // export const getPaymentByUserId = async (user_id) => {
 //     try {
