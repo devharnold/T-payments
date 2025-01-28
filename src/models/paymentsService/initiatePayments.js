@@ -10,8 +10,7 @@ const pool = new Pool({
     database: process.env.DB_NAME,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD
-})
-
+});
 
 export default class paymentsService {
     constructor(user_id, business_account_id, balance, amount, from_currency, to_currency, transaction_id) {
@@ -25,7 +24,7 @@ export default class paymentsService {
     }
     
     static async initiatePayment(payments) {
-        const validPaymentMethods = ['mobile money', 'debit card'];
+        // const validPaymentMethods = ['mobile money', 'debit card'];
         const available_currencies = ['GBP', 'USD', 'KES'];
         
         const client = await pool.connect();

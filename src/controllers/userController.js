@@ -1,9 +1,10 @@
 import User from "../models/user.js";
+import { Pool } from "pg";
 import crypto from 'crypto-js';
 import bcrypt from 'bcrypt.js';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
-import { Pool } from "pg";
+dotenv.config();
 const secretKey = process.env.JWT_SECRET;
 
 import { authService } from '../middlewares/authService.js';
@@ -27,7 +28,7 @@ export default class userController {
         }
         try {
             const client = await this.pool.connect();
-            const newUser = await User.createUser(this.pool, { first_name, last_name, phone_number, user_email, password });
+            const newUser = await User.createUser(this.pool, { user_id, first_name, last_name, phone_number, user_email, password });
             res.status(201).json({ message: 'User created successfully', user: newUser });
             client.release();
         } catch (error) {

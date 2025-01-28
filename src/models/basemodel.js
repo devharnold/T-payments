@@ -1,4 +1,5 @@
 import { Client } from 'pg';
+import { Pool } from 'pg';
 import { uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
 import { DateTime } from 'luxon';
@@ -69,14 +70,14 @@ export default class BaseModel {
 
     static async getDbConnection() {
         // establish a database connection
-        const client = new Client({
+        const pool = new Pool({
             host: process.env.DB_HOST,
             port: process.env.DB_PORT,
             database: process.env.DB_NAME,
             user: process.env.DB_USER,
             password: process.env.DB_PASSWORD
         });
-        await client.connect();
+        const client = await pool.connect();
         return client;
     }
 };

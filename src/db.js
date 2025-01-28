@@ -30,12 +30,12 @@ export const setUpDatabase = async () => {
         const createTransactionsTable = `
             CREATE TABLE IF NOT EXISTS transactions (
                 transaction_id SERIAL PRIMARY KEY,
-                sender_id INTEGER NOT NULL REFERENCES users(id),
-                receiver_id INTEGER NOT NULL REFERENCES users(id),
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                b_account_id INTEGER NOT NULL REFERENCES business_accounts(b_account_id),
                 amount NUMERIC(10, 2) NOT NULL,
+                transaction_fees NUMERIC(10, 2) NOT NULL,
                 currency VARCHAR(10) NOT NULL CHECK (currency IN('USD', 'EUR', 'GBP', 'KES')),
                 transaction_status VARCHAR(20) DEFAULT 'pending' CHECK (transaction_status IN('pending', 'completed', 'failed')),
-                payment_method_id INTEGER NOT NULL REFERENCES payment_methods(payment_method_id),
                 description TEXT,
                 reference_id VARCHAR(255),
                 created_at TIMESTAMP DEFAULT NOW(),
@@ -44,11 +44,11 @@ export const setUpDatabase = async () => {
         `;
         const createUsersTable = `
             CREATE TABLE IF NOT EXISTS users (
-                id INTEGER DEFAULT nextval('account_id') PRIMARY KEY,
+                user_id INTEGER PRIMARY KEY,
                 first_name VARCHAR(50) NOT NULL,
                 last_name VARCHAR(50) NOT NULL,
                 phone_number INTEGER NOT NULL,
-                email VARCHAR(100) UNIQUE NOT NULL,
+                user_email VARCHAR(100) UNIQUE NOT NULL,
                 password VARCHAR(255) NOT NULL,
                 paypal_id VARCHAR(100) UNIQUE,
                 paypal_email VARCHAR(100) UNIQUE,
@@ -56,23 +56,33 @@ export const setUpDatabase = async () => {
                 updated_at TIMESTAMP DEFAULT NOW()
             );
         `;
-        const createPaymentMethodsTable = `
-            CREATE TABLE IF NOT EXISTS payment_methods (
-                payment_method_id PRIMARY KEY,
-                user_id REFERENCES users(id),
-                method_type VARCHAR(20) NOT NULL CHECK (method_type IN('credit card', 'mobile money', 'debit card')),
-                details JSONB NOT NULL,
+        // const createPaymentMethodsTable = `
+        //     CREATE TABLE IF NOT EXISTS payment_methods (
+        //         payment_method_id PRIMARY KEY,
+        //         user_id REFERENCES users(user_id),
+        //         method_type VARCHAR(20) NOT NULL CHECK (method_type IN('credit card', 'mobile money', 'debit card')),
+        //         details JSONB NOT NULL,
+        //         created_at TIMESTAMP DEFAULT NOW(),
+        //         updated_at TIMESTAMP DEFAULT NOW()
+        //     );
+        // `;
+        const createUserAccountsTable = `
+            CREATE TABLE IF NOT EXISTS user_accounts (
+                u_account_id PRIMARY KEY,
+                user_id REFERENCES users(user_id),
+                balance NUMERIC(10, 2) DEFAULT 0.00 NOT NULL,
+                currency VARCHAR(10) NOT NULL CHECK (currency IN('KES', 'USD', 'GBP')),
+                status VARCHAR(20) DEFAULT 'active' NOT NULL CHECK (status IN ('active', 'suspended', 'closed')),
                 created_at TIMESTAMP DEFAULT NOW(),
                 updated_at TIMESTAMP DEFAULT NOW()
             );
         `;
-        const createAccountsTable = `
-            CREATE TABLE IF NOT EXISTS accounts (
-                account_id BIGINT PRIMARY KEY,
+        const createBusinessAccountsTable = `
+            CREATE TABLE IF NOT EXISTS business_accounts (
                 user_id REFERENCES users(user_id),
-                account_type VARCHAR(50) NOT NULL CHECK (account_type IN('savings', 'business', 'current)),
-                balance NUMERIC(10, 2) DEFAULT 0.00 NOT NULL,
-                currency VARCHAR(10) NOT NULL CHECK (currency IN('KES', 'USD', 'GBP', 'EUR')),
+                b_account_id PRIMARY KEY,
+                currency VARCHAR(10) NOT NULL CHECK (currency IN('KES', 'USD', 'GBP')),
+                balance NUMERIC(10, 2) DEFAULT 0.00 NULL,
                 status VARCHAR(20) DEFAULT 'active' NOT NULL CHECK (status IN ('active', 'suspended', 'closed')),
                 created_at TIMESTAMP DEFAULT NOW(),
                 updated_at TIMESTAMP DEFAULT NOW()
@@ -83,7 +93,8 @@ export const setUpDatabase = async () => {
                 user_id REFERENCES users(user_id),
                 service_name VARCHAR(100) NOT NULL CHECK (service_name IN('Spotify', 'X', 'Youtube Music', 'Instagram')),
                 amount NUMERIC(10, 2) NOT NULL,
-                currency VARCHAR(10) NOT NULL CHECK (currency IN('KES', 'USD', 'GBP', 'EUR')),
+                transaction_fees NUMERIC(10, 2) NOT NULL,
+                currency VARCHAR(10) NOT NULL CHECK (currency IN('KES', 'USD', 'GBP')),
                 billing_cycle VARCHAR(20) NOT NULL CHECK(billing_cycle IN('Monthly', 'Weekly', 'Annually', 'Daily')),
                 next_billing_date DATE NOT NULL,
                 status VARCHAR(20) NOT NULL CHECK(status IN('active', 'cancelled', 'expired')),
@@ -93,8 +104,9 @@ export const setUpDatabase = async () => {
         `;
         await client.query(createTransactionsTable);
         await client.query(createUsersTable);
-        await client.query(createPaymentMethodsTable);
-        await client.query(createAccountsTable);
+        //await client.query(createPaymentMethodsTable);
+        await client.query(createUserAccountsTable);
+        await client.query(createBusinessAccountsTable);
         await client.query(createSubscriptionsTable)
         console.log('Table "payments" created or already exists');
         console.log('Table "users" created successfully!')
