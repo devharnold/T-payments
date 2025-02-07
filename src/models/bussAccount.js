@@ -15,7 +15,7 @@ const pool = new Pool({
     password: process.env.DB_PASSWORD
 });
 
-export default class Accounts extends BaseModel {
+export default class BusinessAccounts extends BaseModel {
     constructor(b_account_id, password, user_id, category, currency, status) {
         this.b_account_id = b_account_id
         this.password =  User.password();

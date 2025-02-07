@@ -2,6 +2,7 @@ import { Pool } from "pg";
 import dotenv from 'dotenv';
 import User from "../user.js";
 import Accounts from "../account.js";
+import { request, response } from "express";
 dotenv.config();
 
 const pool = new Pool({
@@ -57,7 +58,12 @@ export default class paymentsService {
                         transaction_id,
                         status: "Currency not available"
                     });
-                } 
+                }
+
+                // checks if the currencies differ; and if yes, perform the get exchange rate and charge some fees
+                if (from_currency !== to_currency) {
+                    this.getExchangeRate();
+                }
 
                 // check user's balance before making payment 
                 const [senderRows] = await client.query(
@@ -117,6 +123,63 @@ export default class paymentsService {
         } finally {
             await client.end();
         }
+    }
+    
+    static async getExchangeRate(from_currency, to_currency) {
+        // fetch real-time exchange rate data to be used in transactions that involve 2 different currencies
+        const url = `https://api.exchangerate-api.com/v4/latest/${from_currency}`;
+        try {
+            const response = await fetch(url);
+            const json = await response.json();
+
+            if (response.status == 200 && "rates" in json) {
+                const exchange_rate = json["rates"][to_currency];
+                if (exchange_rate) {
+                    return exchange_rate;
+                } else {
+                    throw new Error(`Exchange rate not available for ${to_currency}`);
+                }
+            } else {
+                throw new Error("Failed to get exchange rates");
+            }
+        } catch (error) {
+            console.error(error.message);
+        }
+    };
+
+    static calculateFee(amount) {
+        // defines a fair transaction fee
+        const flatFee = 0.10 // flat fee of ($0.10)
+        const percentageFee = 1.5 / 100 // 1.5% of the amount
+
+        // calculate the total fee
+        const fee = flatFee + (amount * percentageFee);
+
+        // ensure fee does not exceed 5% of the transacted amount
+        return Math.min(fee, amount * 0.05).toFixed(2);
+    }
+
+    static async convertAndChange(from_currency, to_currency, amount) {
+        const exchangeRate = await this.getExchangeRate(from_currency, to_currency);
+
+        if (!exchangeRate) {
+            console.error("Exchange rate could not be retreived");
+            return null;
+        }
+
+        const convertedAmount = amount * exchangeRate;
+        const transactionFee = this.calculateFee(amount);
+        const finalAmount = convertedAmount - transactionFee;
+
+        return {
+            from_currency,
+            to_currency,
+            exchangeRate,
+            originalAmount: amount,
+            convertedAmount: convertedAmount.toFixed(2),
+            transactionFee,
+            finalAmount: finalAmount.toFixed(2)
+        };
     }
 };
 
