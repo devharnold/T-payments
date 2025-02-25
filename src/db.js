@@ -66,15 +66,26 @@ export const setUpDatabase = async () => {
         //         updated_at TIMESTAMP DEFAULT NOW()
         //     );
         // `;
-        const createUserAccountsTable = `
-            CREATE TABLE IF NOT EXISTS user_accounts (
-                account_id PRIMARY KEY,
+        // const createUserAccountsTable = `
+        //     CREATE TABLE IF NOT EXISTS user_accounts (
+        //         account_id PRIMARY KEY,
+        //         user_id REFERENCES users(user_id),
+        //         balance NUMERIC(10, 2) DEFAULT 0.00 NOT NULL,
+        //         currency VARCHAR(10) NOT NULL CHECK (currency IN('KES', 'USD', 'GBP')),
+        //         status VARCHAR(20) DEFAULT 'active' NOT NULL CHECK (status IN ('active', 'suspended', 'closed')),
+        //         created_at TIMESTAMP DEFAULT NOW(),
+        //         updated_at TIMESTAMP DEFAULT NOW()
+        //     );
+        // `;
+
+        const createPaymentLogsTable = `
+            CREATE TABLE IF NOT EXISTS payment_logs (
+                user_account_id REFERENCES accounts(account_id),
                 user_id REFERENCES users(user_id),
-                balance NUMERIC(10, 2) DEFAULT 0.00 NOT NULL,
-                currency VARCHAR(10) NOT NULL CHECK (currency IN('KES', 'USD', 'GBP')),
-                status VARCHAR(20) DEFAULT 'active' NOT NULL CHECK (status IN ('active', 'suspended', 'closed')),
-                created_at TIMESTAMP DEFAULT NOW(),
-                updated_at TIMESTAMP DEFAULT NOW()
+                payment_id VARCHAR(13) UNIQUE NOT NULL,
+                currency VARCHAR(10) NOT NULL CHECH (currency IN('KES', 'USD', 'GBP')),
+                payment_date TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW(),
             );
         `;
         const createBusinessAccountsTable = `
@@ -107,11 +118,11 @@ export const setUpDatabase = async () => {
         await client.query(createUserAccountsTable);
         await client.query(createBusinessAccountsTable);
         await client.query(createSubscriptionsTable)
+        await client.query(createPaymentLogsTable);
         // await client.query(createUsersTable);
         console.log('Table "payments" created or already exists');
-        console.log('Table "users" created successfully!')
     } catch (error) {
-        console.error('Error setting up database structure: ', error);
+        console.error('Error setting up database schema: ', error);
     } finally {
         await client.end();
         console.log('Connection closed')

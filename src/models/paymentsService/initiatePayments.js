@@ -53,6 +53,7 @@ export default class paymentsService {
                     continue;
                 }
                 // if the currency is not available then return error message
+                // checks both the `from_currency` and `to_currency`
                 if(!available_currencies.includes(from_currency) || !available_currencies.includes(to_currency)) {
                     result.push({
                         transaction_id,
@@ -78,6 +79,7 @@ export default class paymentsService {
                     continue;
                 }
 
+                // checks if the senderBalance < amount to be transacted
                 const senderBalance = senderRows[0].balance;
                 if (senderBalance < amount) {
                     result.push({

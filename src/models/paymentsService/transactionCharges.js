@@ -15,6 +15,5 @@ export default class TransactionFee {
     static async usdToGbpTransactionFee(from_currency, to_currency, amount) {
         // function to calculate the transaction fees when transferring usd to gbp
         paymentsService.getExchangeRate();
-        
     }
 }
